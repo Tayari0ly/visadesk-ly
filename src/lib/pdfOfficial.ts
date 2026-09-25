@@ -57,9 +57,9 @@ function setRadio(
   }
 }
 
-function drawFallbackSummary(doc: PDFDocument, data: SchengenFormData) {
+async function drawFallbackSummary(doc: PDFDocument, data: SchengenFormData) {
   const page = doc.addPage([595.56, 842.04]);
-  const font = doc.embedFont(StandardFonts.Helvetica);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
   const rows: Array<[string, string]> = [
     ["Surname", up(data.field1_surname)],
     ["Given names", up(data.field3_firstNames)],
@@ -316,7 +316,7 @@ export async function buildOfficialFormPdf(
   // "Firma33" is a hand signature field — intentionally left blank.
 
   if (form.getFields().length === 0) {
-    drawFallbackSummary(doc, data);
+    await drawFallbackSummary(doc, data);
   }
 
   try {
