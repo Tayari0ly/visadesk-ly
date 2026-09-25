@@ -139,6 +139,8 @@ export async function ocrPassportImage(
     });
 
     let combinedText = "";
+    let bestCandidate: NonNullable<ReturnType<typeof parseMRZTD3>> | null = null;
+    let bestScore = -1;
     try {
       await worker.setParameters({
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<",
@@ -163,6 +165,14 @@ export async function ocrPassportImage(
         combinedText += `\n${text}`;
         const lines = findMrzLines(text);
         const parsed = lines ? parseMRZTD3(lines.line1, lines.line2) : extractMRZFromText(text);
+        if (parsed) {
+          const checks = parsed.checks || { passport: false, dob: false, expiry: false, composite: false };
+          const candidateScore = [checks.passport, checks.dob, checks.expiry, checks.composite].filter(Boolean).length;
+          if (candidateScore > bestScore) {
+            bestCandidate = parsed;
+            bestScore = candidateScore;
+          }
+        }
         if (parsed && parsed.valid && parsed.surname && parsed.passportNumber) {
           await worker.terminate();
           return successResult(parsed, combinedText, 0.95);
@@ -175,6 +185,14 @@ export async function ocrPassportImage(
       combinedText += `\n${fullRes.data.text || ""}`;
       const lines = findMrzLines(combinedText);
       const parsed = lines ? parseMRZTD3(lines.line1, lines.line2) : extractMRZFromText(combinedText);
+      if (parsed) {
+        const checks = parsed.checks || { passport: false, dob: false, expiry: false, composite: false };
+        const candidateScore = [checks.passport, checks.dob, checks.expiry, checks.composite].filter(Boolean).length;
+        if (candidateScore > bestScore) {
+          bestCandidate = parsed;
+          bestScore = candidateScore;
+        }
+      }
       if (parsed && parsed.valid && parsed.surname && parsed.passportNumber) {
         await worker.terminate();
         return successResult(parsed, combinedText, 0.9);
@@ -185,6 +203,16 @@ export async function ocrPassportImage(
       } catch {
         /* ignore */
       }
+    }
+
+    if (bestCandidate) {
+      return {
+        success: false,
+        mrzLine1: bestCandidate.rawLines[0],
+        mrzLine2: bestCandidate.rawLines[1],
+        rawText: combinedText,
+        message: "تم العثور على MRZ قريبة من الصحة. راجع السطرين يدويًا ثم اضغط تحليل قبل تطبيق البيانات.",
+      };
     }
 
     return {

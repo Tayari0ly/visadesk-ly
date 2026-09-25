@@ -177,11 +177,13 @@ export const aiExtractionLogs = pgTable(
   (table) => [index("ai_extraction_logs_created_idx").on(table.createdAt)],
 );
 
-export type UserRole = "super_admin" | "admin" | "branch_admin" | "supervisor" | "employee" | "viewer";
+export type UserRole = "owner" | "super_admin" | "admin" | "company_admin" | "branch_admin" | "supervisor" | "employee" | "viewer";
 
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
+  owner: ["*"],
   super_admin: ["*"],
   admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
+  company_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
   branch_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
   supervisor: ["view_forms", "create_form", "edit_form", "print_form", "view_reports", "view_employees", "view_performance"],
   employee: ["view_forms", "create_form", "edit_form", "print_form"],

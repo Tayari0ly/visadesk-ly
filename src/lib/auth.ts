@@ -73,7 +73,7 @@ function decodeSessionId(token: string | undefined | null): number | null {
 }
 
 function normalizeRole(value: string): UserRole {
-  return ["super_admin", "admin", "branch_admin", "supervisor", "employee", "viewer"].includes(value)
+  return ["owner", "super_admin", "admin", "company_admin", "branch_admin", "supervisor", "employee", "viewer"].includes(value)
     ? (value as UserRole)
     : "employee";
 }
@@ -137,10 +137,12 @@ export async function requireUser(): Promise<SessionUser> {
 }
 
 export function hasPermission(role: UserRole, permission: string): boolean {
-  if (role === "super_admin") return true;
+  if (role === "owner" || role === "super_admin") return true;
   const permissions: Record<UserRole, string[]> = {
+    owner: ["*"],
     super_admin: ["*"],
     admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
+    company_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
     branch_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
     supervisor: ["view_forms", "create_form", "edit_form", "print_form", "view_reports", "view_employees", "view_performance"],
     employee: ["view_forms", "create_form", "edit_form", "print_form"],

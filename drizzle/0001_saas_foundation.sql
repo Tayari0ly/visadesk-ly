@@ -106,6 +106,15 @@ CREATE TABLE IF NOT EXISTS activity_logs (
   created_at timestamp NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS ai_extraction_logs (
+  id serial PRIMARY KEY,
+  source_type text NOT NULL DEFAULT 'passport_scan',
+  extracted_data jsonb NOT NULL,
+  confidence text DEFAULT 'high',
+  ai_model_used text DEFAULT 'local_rule_engine',
+  created_at timestamp NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS applications_branch_updated_idx ON applications(branch_id, updated_at);
 CREATE INDEX IF NOT EXISTS applications_user_updated_idx ON applications(user_id, updated_at);
 CREATE INDEX IF NOT EXISTS applications_passport_idx ON applications(passport_number);
@@ -114,5 +123,6 @@ CREATE INDEX IF NOT EXISTS users_branch_idx ON users(branch_id);
 CREATE INDEX IF NOT EXISTS form_versions_application_idx ON form_versions(application_id, created_at);
 CREATE INDEX IF NOT EXISTS audit_logs_branch_created_idx ON audit_logs(branch_id, created_at);
 CREATE INDEX IF NOT EXISTS activity_logs_branch_created_idx ON activity_logs(branch_id, created_at);
+CREATE INDEX IF NOT EXISTS ai_extraction_logs_created_idx ON ai_extraction_logs(created_at);
 
 COMMIT;

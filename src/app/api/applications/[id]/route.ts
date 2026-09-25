@@ -6,7 +6,7 @@ import { hasPermission, requireUser } from "@/lib/auth";
 
 async function loadVisible(id: number, user: Awaited<ReturnType<typeof requireUser>>) {
   const filters = [eq(applications.id, id)];
-  if (user.role !== "super_admin" && user.role !== "admin") {
+  if (user.role !== "owner" && user.role !== "super_admin" && user.role !== "admin") {
     filters.push(user.branchId ? eq(applications.branchId, user.branchId) : eq(applications.userId, user.id));
   }
   const rows = await db.select().from(applications).where(and(...filters)).limit(1);

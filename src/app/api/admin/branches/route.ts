@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { branches, licenses } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 
-function guard(role: string) { return role === "super_admin" || role === "admin"; }
+function guard(role: string) { return role === "owner" || role === "super_admin" || role === "admin"; }
 function safeError(error: unknown) { console.error("Branch API error", error); return "تعذر تنفيذ العملية."; }
 
 export async function GET() {

@@ -18,6 +18,7 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("employee");
+  const [branchId, setBranchId] = useState("");
   const [error, setError] = useState("");
 
   const load = async () => {
@@ -37,7 +38,7 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     const res = await apiFetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, fullName, role }),
+      body: JSON.stringify({ username, password, fullName, role, branchId: branchId ? Number(branchId) : undefined }),
     });
     const json = await res.json();
     if (!json.success) {
@@ -48,6 +49,7 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     setPassword("");
     setFullName("");
     setRole("employee");
+    setBranchId("");
     await load();
   };
 
@@ -80,9 +82,12 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             <input className="border rounded-md p-2 text-sm" placeholder="اسم المستخدم" value={username} onChange={(e) => setUsername(e.target.value)} />
             <input className="border rounded-md p-2 text-sm" placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} />
             <input className="border rounded-md p-2 text-sm" placeholder="الاسم" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <input className="border rounded-md p-2 text-sm" placeholder="رقم الشركة/الفرع (للحسابات المشتركة)" value={branchId} onChange={(e) => setBranchId(e.target.value.replace(/\D/g, ""))} />
             <select className="border rounded-md p-2 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="employee">موظف</option>
               <option value="admin">أدمن</option>
+              <option value="company_admin">مدير شركة مشتركة</option>
+              <option value="branch_admin">مدير فرع</option>
             </select>
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
@@ -96,7 +101,7 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <div>
                   <div className="font-semibold">{u.username}</div>
                   <div className="text-xs text-slate-500">
-                    {u.fullName} · {u.role === "admin" ? "أدمن" : "موظف"} · {u.active ? "نشط" : "موقوف"}
+                    {u.fullName} · {u.role === "admin" ? "أدمن" : u.role === "company_admin" ? "مدير شركة" : u.role === "branch_admin" ? "مدير فرع" : "موظف"} · {u.active ? "نشط" : "موقوف"}
                   </div>
                 </div>
                 <div className="flex gap-2">

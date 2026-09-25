@@ -26,6 +26,7 @@ export function PassportScanner({ onApplyExtractedData }: PassportScannerProps) 
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>("");
   const [extractedData, setExtractedData] = useState<ExtractedPassportData | null>(null);
+  const [mrzVerified, setMrzVerified] = useState(false);
   const [showManualMRZ, setShowManualMRZ] = useState(true);
   const [mrzLine1, setMrzLine1] = useState("");
   const [mrzLine2, setMrzLine2] = useState("");
@@ -55,15 +56,16 @@ export function PassportScanner({ onApplyExtractedData }: PassportScannerProps) 
 
     try {
       const local = await ocrPassportImage(base64Img, (msg) => setScanStatus(msg));
+      if (local.mrzLine1) setMrzLine1(local.mrzLine1);
+      if (local.mrzLine2) setMrzLine2(local.mrzLine2);
       if (local.success && local.data) {
         setExtractedData(local.data);
-        if (local.mrzLine1) setMrzLine1(local.mrzLine1);
-        if (local.mrzLine2) setMrzLine2(local.mrzLine2);
+        setMrzVerified(true);
         setScanStatus("تم استخراج بيانات الجواز محلياً داخل المتصفح (بدون إرسال الصورة لأي سيرفر).");
         return;
       }
 
-      setScanStatus("محاولة ثانية عبر محرك الذكاء الاصطناعي المحلي (Ollama) إن كان مفعّلاً...");
+      setScanStatus("تم العثور على قراءة أولية. راجع سطرَي MRZ يدويًا قبل تطبيق البيانات...");
       const res = await fetch("/api/extract-passport", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -123,6 +125,7 @@ export function PassportScanner({ onApplyExtractedData }: PassportScannerProps) 
     };
 
     setExtractedData(data);
+    setMrzVerified(Boolean(parsed.valid));
     setScanStatus(
       `تم فك MRZ: ${parsed.surname}, ${parsed.firstNames}, ${parsed.passportNumber} (تحقق: جواز ${checks?.passport ? "✓" : "×"} / ميلاد ${checks?.dob ? "✓" : "×"} / انتهاء ${checks?.expiry ? "✓" : "×"} / إجمالي ${checks?.composite ? "✓" : "×"})`
     );
@@ -130,7 +133,7 @@ export function PassportScanner({ onApplyExtractedData }: PassportScannerProps) 
 
   // Apply to the Schengen form
   const handleApply = () => {
-    if (!extractedData) return;
+    if (!extractedData || !mrzVerified) return;
     onApplyExtractedData(extractedData, passportImage || undefined);
   };
 
@@ -277,7 +280,7 @@ export function PassportScanner({ onApplyExtractedData }: PassportScannerProps) 
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     <span className="font-bold text-slate-800 text-base">
-                      تم استخراج بيانات الجواز بنجاح!
+                      {mrzVerified ? "تم التحقق من بيانات الجواز" : "قراءة أولية — تحتاج مراجعة"}
                     </span>
                   </div>
                   <span className="text-xs px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-semibold border border-emerald-200">
@@ -325,10 +328,12 @@ export function PassportScanner({ onApplyExtractedData }: PassportScannerProps) 
 
                 {/* Big Action Button */}
                 <div className="pt-2">
+                  {!mrzVerified && <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-xs font-semibold">لا يمكن تطبيق البيانات قبل نجاح فحوصات MRZ الأربعة. صحّح السطرين أسفل الجواز ثم أعد التحليل.</div>}
                   <button
                     type="button"
                     onClick={handleApply}
-                    className="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-3 text-base"
+                    disabled={!mrzVerified}
+                    className="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-3 text-base"
                   >
                     <FileCheck className="w-5 h-5" />
                     <span>تطبيق هذه البيانات وتعبئة حقول استمارة شنقن تلقائياً</span>

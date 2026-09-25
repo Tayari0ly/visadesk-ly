@@ -23,6 +23,7 @@ export function FormPreviewAndExport({
   const [building, setBuilding] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const urlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export function FormPreviewAndExport({
     setBuilding(true);
     const t = setTimeout(async () => {
       try {
+        setPdfError(null);
         const url = await officialFormObjectUrl(formData);
         if (!alive) {
           URL.revokeObjectURL(url);
@@ -40,6 +42,7 @@ export function FormPreviewAndExport({
         setPdfUrl(url);
       } catch (e) {
         console.error("official form render failed", e);
+        if (alive) setPdfError("تعذر تحميل قالب PDF الرسمي. تأكد من وجود ملف النموذج في النشر ثم أعد المحاولة.");
       } finally {
         if (alive) setBuilding(false);
       }
@@ -57,7 +60,7 @@ export function FormPreviewAndExport({
       setTimeout(() => setDownloadSuccess(false), 4000);
     } catch (e) {
       console.error(e);
-      alert("تعذر إنشاء ملف الـ PDF");
+      setPdfError("تعذر إنشاء ملف PDF. جرّب تحديث الصفحة، وإذا استمر الخطأ تحقق من نشر قالب النموذج الرسمي.");
     }
   };
 
@@ -126,6 +129,11 @@ export function FormPreviewAndExport({
         <div className="bg-[#1a4f8b] text-white p-3 text-center text-xs font-bold flex items-center justify-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
           تم الحفظ في ملفك
+        </div>
+      )}
+      {pdfError && (
+        <div className="bg-rose-50 text-rose-800 border-b border-rose-200 p-3 text-center text-xs font-semibold">
+          {pdfError}
         </div>
       )}
 

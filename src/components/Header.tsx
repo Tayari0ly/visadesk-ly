@@ -1,13 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { FolderOpen, LogOut, Users } from "lucide-react";
 
 export type AppUser = {
   id: number;
   username: string;
   fullName: string;
-  role: "admin" | "super_admin" | "branch_admin" | "supervisor" | "employee" | "viewer";
+  role: "owner" | "admin" | "super_admin" | "company_admin" | "branch_admin" | "supervisor" | "employee" | "viewer";
   branchId?: number | null;
 };
 
@@ -35,14 +34,7 @@ export function Header({
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
-          <Image
-            src="/images/visadesk-ly-logo.png"
-            alt=""
-            width={48}
-            height={48}
-            className="h-12 w-12 object-contain"
-            priority
-          />
+          <div aria-hidden="true" className="h-12 w-12 rounded-xl bg-[#1a4f8b] text-white flex items-center justify-center text-sm font-black tracking-tight">VD</div>
           <div className="leading-none">
             <div className="text-[22px] font-bold tracking-tight text-[#1a4f8b]">VisaDesk</div>
             <div className="mt-0.5 flex items-baseline gap-2">
@@ -78,10 +70,20 @@ export function Header({
               <span className="text-[10px] bg-[#3db7d4] text-white rounded-full px-1.5 font-bold">{savedCount}</span>
             )}
           </button>
-          {(user?.role === "admin" || user?.role === "super_admin" || user?.role === "branch_admin") && (
+          {(user?.role === "owner" || user?.role === "admin" || user?.role === "super_admin" || user?.role === "company_admin" || user?.role === "branch_admin") && (
             <button onClick={onOpenUsers} className="px-3 py-1.5 rounded-md text-sm text-[#1a4f8b] hover:bg-slate-100 flex items-center gap-1.5">
               <Users className="w-4 h-4" />
               الحسابات
+            </button>
+          )}
+          {(user?.role === "owner" || user?.role === "super_admin" || user?.role === "admin") && (
+            <button onClick={() => { window.location.href = "/owner"; }} className="px-3 py-1.5 rounded-md text-sm text-[#1a4f8b] hover:bg-slate-100">
+              لوحة المالك
+            </button>
+          )}
+          {(user?.role === "company_admin" || user?.role === "branch_admin" || user?.role === "supervisor") && (
+            <button onClick={() => { window.location.href = "/company"; }} className="px-3 py-1.5 rounded-md text-sm text-[#1a4f8b] hover:bg-slate-100">
+              بوابة الشركة
             </button>
           )}
           {user && (

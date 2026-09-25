@@ -1,4 +1,4 @@
-import { PDFCheckBox, PDFDocument, PDFRadioGroup, PDFTextField } from "pdf-lib";
+import { PDFCheckBox, PDFDocument, PDFRadioGroup, PDFTextField, StandardFonts } from "pdf-lib";
 import { SchengenFormData } from "@/types/schengen";
 
 const FORM_URL = "/forms/schengen_visa_application_form.pdf";
@@ -55,6 +55,32 @@ function setRadio(
   } catch {
     /* ignore */
   }
+}
+
+function drawFallbackSummary(doc: PDFDocument, data: SchengenFormData) {
+  const page = doc.addPage([595.56, 842.04]);
+  const font = doc.embedFont(StandardFonts.Helvetica);
+  const rows: Array<[string, string]> = [
+    ["Surname", up(data.field1_surname)],
+    ["Given names", up(data.field3_firstNames)],
+    ["Date of birth", fmt(data.field4_dateOfBirth)],
+    ["Nationality", data.field7_currentNationality],
+    ["Passport number", up(data.field13_travelDocNumber)],
+    ["Issued by", data.field16_issuedBy],
+    ["Valid until", fmt(data.field15_validUntil)],
+    ["Main destination", data.field24_memberStateOfMainDestination],
+    ["Arrival", fmt(data.field26_intendedArrivalDate)],
+    ["Departure", fmt(data.field26_intendedDepartureDate)],
+    ["Accommodation", data.field29_invitingPersonOrHotelName],
+    ["Address", data.field29_hostAddressAndEmail],
+  ];
+  page.drawText("VisaDesk LY - Schengen application data", { x: 42, y: 790, size: 16, font });
+  page.drawText("Additional application data summary", { x: 42, y: 768, size: 9, font });
+  rows.filter(([, value]) => value).forEach(([label, value], index) => {
+    const y = 725 - index * 32;
+    page.drawText(`${label}:`, { x: 48, y, size: 10, font });
+    page.drawText(String(value).slice(0, 90), { x: 190, y, size: 10, font });
+  });
 }
 
 /** Fills the official harmonised Schengen form (4 pages) with the applicant data. */
@@ -288,6 +314,10 @@ export async function buildOfficialFormPdf(
   // ---- Page 4 -----------------------------------------------------------
   setText(form, "Lugar y fechaPlace and date", data.field32_placeAndDate);
   // "Firma33" is a hand signature field — intentionally left blank.
+
+  if (form.getFields().length === 0) {
+    drawFallbackSummary(doc, data);
+  }
 
   try {
     form.updateFieldAppearances();

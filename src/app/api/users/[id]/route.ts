@@ -6,7 +6,7 @@ import { hashPassword, hasPermission, requireUser } from "@/lib/auth";
 
 async function targetFor(me: Awaited<ReturnType<typeof requireUser>>, id: number) {
   const filters = [eq(users.id, id)];
-  if (me.role !== "super_admin" && me.role !== "admin") filters.push(me.branchId ? eq(users.branchId, me.branchId) : eq(users.id, me.id));
+  if (me.role !== "owner" && me.role !== "super_admin" && me.role !== "admin") filters.push(me.branchId ? eq(users.branchId, me.branchId) : eq(users.id, me.id));
   return (await db.select().from(users).where(and(...filters)).limit(1))[0] || null;
 }
 function safeError(error: unknown) { console.error("User detail API error", error); return "تعذر تنفيذ العملية."; }
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (typeof body.fullName === "string") patch.fullName = body.fullName.trim().slice(0, 200);
     if (typeof body.active === "boolean") patch.active = body.active;
     if (typeof body.password === "string" && body.password) patch.passwordHash = hashPassword(body.password);
-    if (typeof body.role === "string" && ["branch_admin", "supervisor", "employee", "viewer"].includes(body.role) && me.role === "super_admin") patch.role = body.role;
+    if (typeof body.role === "string" && ["owner", "super_admin", "admin", "company_admin", "branch_admin", "supervisor", "employee", "viewer"].includes(body.role) && (me.role === "owner" || me.role === "super_admin")) patch.role = body.role;
     const updated = await db.update(users).set(patch).where(eq(users.id, id)).returning({ id: users.id, username: users.username, fullName: users.fullName, role: users.role, branchId: users.branchId, active: users.active });
     return NextResponse.json({ success: true, user: updated[0] });
   } catch (error) {

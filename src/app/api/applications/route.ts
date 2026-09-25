@@ -5,7 +5,7 @@ import { applications, auditLogs } from "@/db/schema";
 import { hasPermission, requireUser } from "@/lib/auth";
 
 function scope(user: Awaited<ReturnType<typeof requireUser>>) {
-  if (user.role === "super_admin" || user.role === "admin") return undefined;
+  if (user.role === "owner" || user.role === "super_admin" || user.role === "admin") return undefined;
   if (user.branchId) return eq(applications.branchId, user.branchId);
   return eq(applications.userId, user.id);
 }

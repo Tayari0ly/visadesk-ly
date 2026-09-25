@@ -213,7 +213,9 @@ export function parseMRZTD3(line1Raw: string, line2Raw: string): ParsedMRZResult
   const passportOk = mrzCheckDigit(line2.slice(0, 9)) === line2[9];
   const dobOk = mrzCheckDigit(line2.slice(13, 19)) === line2[19];
   const expOk = mrzCheckDigit(line2.slice(21, 27)) === line2[27];
-  const compositeData = line2.slice(0, 10) + line2.slice(13, 20) + line2.slice(21, 28) + line2.slice(28, 42);
+  // TD3 composite data includes the optional-data check digit at position 43
+  // (index 42) before the final composite check digit at position 44.
+  const compositeData = line2.slice(0, 10) + line2.slice(13, 20) + line2.slice(21, 28) + line2.slice(28, 43);
   const compositeOk = mrzCheckDigit(compositeData) === line2[43];
 
   let sex: "MALE" | "FEMALE" | "" = "";
