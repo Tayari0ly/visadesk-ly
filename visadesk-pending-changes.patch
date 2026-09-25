@@ -1,0 +1,376 @@
+diff --git a/public/images/visadesk-ly-logo.svg b/public/images/visadesk-ly-logo.svg
+new file mode 100644
+index 0000000..a16d0a6
+--- /dev/null
++++ b/public/images/visadesk-ly-logo.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
++  <title id="title">VisaDesk LY</title>
++  <desc id="desc">VisaDesk LY travel and tourism solutions logo</desc>
++  <defs>
++    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0" stop-color="#123f75"/>
++      <stop offset="1" stop-color="#1a4f8b"/>
++    </linearGradient>
++    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
++      <stop offset="0" stop-color="#3db7d4"/>
++      <stop offset="1" stop-color="#8ce4ee"/>
++    </linearGradient>
++  </defs>
++  <rect x="7" y="7" width="146" height="146" rx="34" fill="url(#bg)"/>
++  <path d="M80 25 126 42v34c0 30-19 50-46 61C53 126 34 106 34 76V42z" fill="none" stroke="#fff" stroke-width="6" opacity=".95"/>
++  <path d="M50 92h60M50 105h45" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
++  <path d="m51 67 26-9 31-13c4-2 8 3 4 6L88 72l-5 18c-1 4-7 4-8 0l-3-13-20-4c-4-1-5-5-1-6z" fill="url(#accent)"/>
++  <text x="80" y="132" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#fff" letter-spacing="1">VISA DESK</text>
++</svg>
+diff --git a/src/app/api/users/route.ts b/src/app/api/users/route.ts
+index 4c02953..82523e3 100644
+--- a/src/app/api/users/route.ts
++++ b/src/app/api/users/route.ts
+@@ -1,12 +1,17 @@
+ import { NextRequest, NextResponse } from "next/server";
+ import { desc, eq } from "drizzle-orm";
+ import { db } from "@/db";
+-import { users } from "@/db/schema";
++import { branches, users } from "@/db/schema";
+ import { hashPassword, hasPermission, requireUser } from "@/lib/auth";
+ 
+ const allowedRoles = ["owner", "super_admin", "admin", "company_admin", "branch_admin", "supervisor", "employee", "viewer"] as const;
+ function safeError(error: unknown) {
+   console.error("Users API error", error);
++  const code = typeof error === "object" && error !== null && "code" in error ? String((error as { code?: unknown }).code) : "";
++  if (code === "23505") return "اسم المستخدم موجود مسبقاً، اختر اسماً آخر.";
++  if (code === "23503") return "رقم الشركة أو الفرع غير موجود. اختر فرعاً صحيحاً أو اترك الحقل فارغاً.";
++  if (code === "42P01") return "جدول الحسابات غير موجود في Neon. طبّق Migration ثم أعد النشر.";
++  if (code === "42703") return "بنية جدول الحسابات قديمة. طبّق آخر Migration ثم أعد النشر.";
+   return "تعذر تنفيذ العملية.";
+ }
+ 
+@@ -34,7 +39,20 @@ export async function POST(req: NextRequest) {
+     const requestedRole = String(body.role || "employee");
+     const role = allowedRoles.includes(requestedRole as (typeof allowedRoles)[number]) ? requestedRole : "employee";
+     if ((role === "owner" || role === "super_admin") && me.role !== "owner" && me.role !== "super_admin") return NextResponse.json({ success: false, error: "FORBIDDEN" }, { status: 403 });
+-    const inserted = await db.insert(users).values({ username, passwordHash: hashPassword(password), fullName: String(body.fullName || "").trim().slice(0, 200), role, branchId: me.role === "owner" || me.role === "super_admin" ? (body.branchId || null) : me.branchId, active: true }).returning({ id: users.id, username: users.username, fullName: users.fullName, role: users.role, branchId: users.branchId, active: users.active });
++    const existing = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
++    if (existing.length) return NextResponse.json({ success: false, error: "اسم المستخدم موجود مسبقاً، اختر اسماً آخر." }, { status: 409 });
++
++    const requestedBranchId = me.role === "owner" || me.role === "super_admin" ? body.branchId : me.branchId;
++    const branchId = requestedBranchId === undefined || requestedBranchId === null || requestedBranchId === "" ? null : Number(requestedBranchId);
++    if (branchId !== null && (!Number.isInteger(branchId) || branchId <= 0)) {
++      return NextResponse.json({ success: false, error: "رقم الشركة أو الفرع غير صحيح." }, { status: 400 });
++    }
++    if (branchId !== null) {
++      const branch = await db.select({ id: branches.id }).from(branches).where(eq(branches.id, branchId)).limit(1);
++      if (!branch.length) return NextResponse.json({ success: false, error: "رقم الشركة أو الفرع غير موجود." }, { status: 400 });
++    }
++
++    const inserted = await db.insert(users).values({ username, passwordHash: hashPassword(password), fullName: String(body.fullName || "").trim().slice(0, 200), role, branchId, active: true }).returning({ id: users.id, username: users.username, fullName: users.fullName, role: users.role, branchId: users.branchId, active: users.active });
+     return NextResponse.json({ success: true, user: inserted[0] }, { status: 201 });
+   } catch (error) {
+     const status = (error as Error)?.message === "UNAUTHORIZED" ? 401 : 500;
+diff --git a/src/components/ExtraDataQuickFill.tsx b/src/components/ExtraDataQuickFill.tsx
+index 1b3ab86..85f7bc0 100644
+--- a/src/components/ExtraDataQuickFill.tsx
++++ b/src/components/ExtraDataQuickFill.tsx
+@@ -27,8 +27,14 @@ interface ExtraDataQuickFillProps {
+ 
+ export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillProps) {
+   const [applied, setApplied] = useState(false);
++  const [hotelSearch, setHotelSearch] = useState("");
+ 
+   const hotels = DESTINATION_PRESETS[formData.field24_memberStateOfMainDestination]?.hotels || [];
++  const filteredHotels = useMemo(() => {
++    const query = hotelSearch.trim().toLowerCase();
++    if (!query) return hotels;
++    return hotels.filter((hotel) => `${hotel.name} ${hotel.address} ${hotel.phone}`.toLowerCase().includes(query));
++  }, [hotelSearch, hotels]);
+ 
+   const suggestedCity = useMemo(() => {
+     return CITY_DEFAULTS[formData.field7_currentNationality] || CITY_DEFAULTS.Libya;
+@@ -253,18 +259,27 @@ export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillPro
+           <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+             <Building2 className="w-4 h-4 text-emerald-600" /> الفندق أو المستضيف (29)
+           </h3>
++          <input
++            type="search"
++            dir="auto"
++            value={hotelSearch}
++            onChange={(e) => setHotelSearch(e.target.value)}
++            placeholder={`ابحث في ${hotels.length} فندقاً بالاسم أو المدينة...`}
++            className="w-full text-sm p-2.5 border border-emerald-200 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500"
++          />
+           <select
+             className="w-full text-sm p-2.5 border border-slate-300 rounded-lg bg-white"
+             value={formData.field29_invitingPersonOrHotelName}
+             onChange={(e) => applyHotel(e.target.value)}
+           >
+-            <option value="">اختر فندقاً جاهزاً أو اكتب يدوياً أدناه...</option>
+-            {hotels.map((h) => (
++            <option value="">اختر فندقاً من نتائج البحث أو اكتب يدوياً أدناه...</option>
++            {filteredHotels.map((h) => (
+               <option key={h.name} value={h.name}>
+                 {h.name}
+               </option>
+             ))}
+           </select>
++          <p className="text-[11px] text-slate-500">تظهر {filteredHotels.length} نتيجة. اختر الفندق ليتم ملء العنوان والهاتف تلقائياً، ثم راجع بيانات الحجز قبل التقديم.</p>
+           <input
+             className="w-full text-sm p-2.5 border border-slate-300 rounded-lg bg-white"
+             placeholder="اسم الفندق أو الشخص المستضيف"
+diff --git a/src/components/Header.tsx b/src/components/Header.tsx
+index c13ff5e..1e95d23 100644
+--- a/src/components/Header.tsx
++++ b/src/components/Header.tsx
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import { FolderOpen, LogOut, Users } from "lucide-react";
++import Image from "next/image";
+ 
+ export type AppUser = {
+   id: number;
+@@ -34,7 +35,7 @@ export function Header({
+     <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between">
+         <div className="flex items-center gap-3 min-w-0">
+-          <div aria-hidden="true" className="h-12 w-12 rounded-xl bg-[#1a4f8b] text-white flex items-center justify-center text-sm font-black tracking-tight">VD</div>
++          <Image src="/images/visadesk-ly-logo.svg" alt="VisaDesk LY" width={52} height={52} className="h-12 w-12 object-contain" priority />
+           <div className="leading-none">
+             <div className="text-[22px] font-bold tracking-tight text-[#1a4f8b]">VisaDesk</div>
+             <div className="mt-0.5 flex items-baseline gap-2">
+diff --git a/src/components/LoginForm.tsx b/src/components/LoginForm.tsx
+index 7fc0b89..7dfb30b 100644
+--- a/src/components/LoginForm.tsx
++++ b/src/components/LoginForm.tsx
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import { FormEvent, useState } from "react";
++import Image from "next/image";
+ import { apiFetch } from "@/lib/client";
+ 
+ export type SessionUserLite = {
+@@ -53,7 +54,7 @@ export function LoginForm({ onLoggedIn }: { onLoggedIn?: (user: SessionUserLite)
+     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4" dir="rtl">
+       <form onSubmit={onSubmit} className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+         <div className="flex items-center gap-3 mb-6">
+-          <div aria-hidden="true" className="h-12 w-12 rounded-xl bg-[#1a4f8b] text-white flex items-center justify-center text-sm font-black tracking-tight">VD</div>
++          <Image src="/images/visadesk-ly-logo.svg" alt="VisaDesk LY" width={52} height={52} className="h-12 w-12 object-contain" priority />
+           <div>
+             <div className="text-xl font-bold text-[#1a4f8b]">VisaDesk LY</div>
+             <div className="text-[11px] text-[#3db7d4] font-semibold">TRAVEL &amp; TOURISM SOLUTIONS</div>
+diff --git a/src/components/SchengenFormEditor.tsx b/src/components/SchengenFormEditor.tsx
+index b797d49..0e6a656 100644
+--- a/src/components/SchengenFormEditor.tsx
++++ b/src/components/SchengenFormEditor.tsx
+@@ -224,7 +224,7 @@ export function SchengenFormEditor({
+           }`}
+         >
+           <CreditCard className="w-4 h-4" />
+-          <span>4. الفندق والمصاريف (29-31)</span>
++          <span>4. السكن والدعوة والمصاريف (31-33)</span>
+         </button>
+ 
+         <button
+@@ -949,10 +949,10 @@ export function SchengenFormEditor({
+           <div className="space-y-6">
+             <div className="border-b border-slate-200 pb-3">
+               <h3 className="text-base font-bold text-slate-800">
+-                الحقول 29 إلى 31: بيانات السكن / الفندق وتغطية نفقات السفر
++                الحقول 31 إلى 33: بيانات السكن والدعوة وتغطية نفقات السفر
+               </h3>
+               <p className="text-xs text-slate-500">
+-                حدد مقر الإقامة في بلد الشنقن وكيفية تمويل الرحلة (من طرفك أو بواسطة مستضيف/شركة).
++                أدخل بيانات السكن أو الشخص المستضيف، وبيانات الشركة أو الجهة التي أرسلت الدعوة في الخانة 32، ثم حدد كيفية تمويل الرحلة.
+               </p>
+             </div>
+ 
+@@ -1001,6 +1001,28 @@ export function SchengenFormEditor({
+                 />
+               </div>
+ 
++              {/* Field 32: Inviting company / organisation */}
++              <div className="md:col-span-2 mt-2 rounded-xl border border-cyan-200 bg-cyan-50/50 p-4 space-y-3">
++                <div>
++                  <h4 className="text-sm font-bold text-[#1a4f8b]">32. بيانات الشركة أو الجهة الداعية / Inviting company or organisation</h4>
++                  <p className="text-[11px] text-slate-600 mt-1">هذه الخانات تُنقل إلى الخانة 32 في نموذج BLS الرسمي. اتركها فارغة إذا لم تكن هناك دعوة من شركة أو منظمة.</p>
++                </div>
++                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
++                  <div className="md:col-span-2">
++                    <label className="block text-xs font-bold text-slate-700 mb-1">اسم الشركة / المنظمة الداعية:</label>
++                    <input type="text" value={formData.field30_invitingCompany} onChange={(e) => updateField("field30_invitingCompany", e.target.value)} placeholder="اسم الشركة أو المنظمة" className="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500" />
++                  </div>
++                  <div>
++                    <label className="block text-xs font-bold text-slate-700 mb-1">اسم الشخص المسؤول وعنوانه وبريده:</label>
++                    <textarea rows={3} value={formData.field30_companyContactPerson} onChange={(e) => updateField("field30_companyContactPerson", e.target.value)} placeholder="الاسم، العنوان، البريد الإلكتروني" className="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500" />
++                  </div>
++                  <div>
++                    <label className="block text-xs font-bold text-slate-700 mb-1">هاتف الشركة وعنوانها:</label>
++                    <textarea rows={3} value={formData.field30_companyAddressAndPhone} onChange={(e) => updateField("field30_companyAddressAndPhone", e.target.value)} placeholder="العنوان ورقم الهاتف" className="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500" />
++                  </div>
++                </div>
++              </div>
++
+               {/* Field 31: Means of support */}
+               <div className="md:col-span-2 pt-2">
+                 <label className="block text-xs font-bold text-slate-800 mb-2">
+@@ -1206,4 +1228,4 @@ export function SchengenFormEditor({
+       </div>
+     </div>
+   );
+-}
+\ No newline at end of file
++}
+diff --git a/src/components/UsersModal.tsx b/src/components/UsersModal.tsx
+index 466ed73..c510319 100644
+--- a/src/components/UsersModal.tsx
++++ b/src/components/UsersModal.tsx
+@@ -35,22 +35,30 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
+ 
+   const create = async () => {
+     setError("");
+-    const res = await apiFetch("/api/users", {
+-      method: "POST",
+-      headers: { "Content-Type": "application/json" },
+-      body: JSON.stringify({ username, password, fullName, role, branchId: branchId ? Number(branchId) : undefined }),
+-    });
+-    const json = await res.json();
+-    if (!json.success) {
+-      setError(json.error || "تعذر الإنشاء");
++    if (!username.trim() || password.length < 10) {
++      setError("اسم المستخدم مطلوب وكلمة المرور يجب أن تكون 10 أحرف على الأقل.");
+       return;
+     }
+-    setUsername("");
+-    setPassword("");
+-    setFullName("");
+-    setRole("employee");
+-    setBranchId("");
+-    await load();
++    try {
++      const res = await apiFetch("/api/users", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ username, password, fullName, role, branchId: branchId ? Number(branchId) : undefined }),
++      });
++      const json = await res.json().catch(() => ({}));
++      if (!res.ok || !json.success) {
++        setError(json.error || `تعذر إنشاء الحساب (${res.status})`);
++        return;
++      }
++      setUsername("");
++      setPassword("");
++      setFullName("");
++      setRole("employee");
++      setBranchId("");
++      await load();
++    } catch {
++      setError("تعذر الاتصال بالخادم. تحقق من نشر Vercel وDATABASE_URL ثم أعد المحاولة.");
++    }
+   };
+ 
+   const toggle = async (u: UserRow) => {
+@@ -80,7 +88,7 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
+         <div className="p-5 overflow-y-auto space-y-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+             <input className="border rounded-md p-2 text-sm" placeholder="اسم المستخدم" value={username} onChange={(e) => setUsername(e.target.value)} />
+-            <input className="border rounded-md p-2 text-sm" placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} />
++            <input className="border rounded-md p-2 text-sm" placeholder="كلمة المرور (10 أحرف على الأقل)" minLength={10} type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+             <input className="border rounded-md p-2 text-sm" placeholder="الاسم" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+             <input className="border rounded-md p-2 text-sm" placeholder="رقم الشركة/الفرع (للحسابات المشتركة)" value={branchId} onChange={(e) => setBranchId(e.target.value.replace(/\D/g, ""))} />
+             <select className="border rounded-md p-2 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
+diff --git a/src/lib/extraDataPresets.ts b/src/lib/extraDataPresets.ts
+index 51566b6..f11c8a6 100644
+--- a/src/lib/extraDataPresets.ts
++++ b/src/lib/extraDataPresets.ts
+@@ -118,6 +118,56 @@ export const DESTINATION_PRESETS: Record<
+         address: "Paseo del Prado 48, 28014 Madrid, Spain",
+         phone: "+34 91 429 66 29",
+       },
++      {
++        name: "Barceló Sants",
++        address: "Plaça dels Països Catalans 1-3, 08014 Barcelona, Spain",
++        phone: "+34 93 503 53 00",
++      },
++      {
++        name: "Hotel Madrid Chamartín Affiliated by Meliá",
++        address: "Agustín de Foxá s/n, 28036 Madrid, Spain",
++        phone: "+34 91 334 49 00",
++      },
++      {
++        name: "Hotel Ilunion Valencia",
++        address: "Carrer de Valle de Ayora 1, 46015 Valencia, Spain",
++        phone: "+34 96 399 56 00",
++      },
++      {
++        name: "Meliá Sevilla",
++        address: "Calle Doctor Pedro de Castro 1, 41004 Sevilla, Spain",
++        phone: "+34 954 42 15 11",
++      },
++      {
++        name: "NH Málaga",
++        address: "Calle San Jacinto 2, 29007 Málaga, Spain",
++        phone: "+34 952 07 13 23",
++      },
++      {
++        name: "AC Hotel Málaga Palacio",
++        address: "Calle Cortina del Muelle 1, 29015 Málaga, Spain",
++        phone: "+34 952 21 51 85",
++      },
++      {
++        name: "Hotel Granada Center",
++        address: "Avenida de Fuentenueva s/n, 18002 Granada, Spain",
++        phone: "+34 958 20 51 00",
++      },
++      {
++        name: "Hotel Palma Bellver",
++        address: "Paseo Marítimo 29-31, 07014 Palma, Spain",
++        phone: "+34 971 73 26 35",
++      },
++      {
++        name: "Eurostars Gran Hotel Santiago",
++        address: "Avenida Maestro Mateo 27, 15706 Santiago de Compostela, Spain",
++        phone: "+34 981 52 27 36",
++      },
++      {
++        name: "Hotel Zaragoza Royal",
++        address: "Calle del Arzobispo Domenech 4, 50006 Zaragoza, Spain",
++        phone: "+34 976 56 95 00",
++      },
+     ],
+   },
+   NETHERLANDS: {
+diff --git a/src/lib/pdfOfficial.ts b/src/lib/pdfOfficial.ts
+index 6460ad5..59328a1 100644
+--- a/src/lib/pdfOfficial.ts
++++ b/src/lib/pdfOfficial.ts
+@@ -93,6 +93,29 @@ export async function buildOfficialFormPdf(
+   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+   const form = doc.getForm();
+ 
++  // The BLS template has a few duplicated, slightly-offset widgets. If both
++  // are filled, text is printed twice; one of them also inherits an oversized
++  // font. Keep the first widget, preserve the printed form lines, and set an
++  // explicit readable size.
++  const repairTextField = (name: string, fontSize: number) => {
++    try {
++      const field = form.getField(name);
++      if (field instanceof PDFTextField) {
++        while (field.acroField.getWidgets().length > 1) {
++          field.acroField.removeWidget(field.acroField.getWidgets().length - 1);
++        }
++        field.setFontSize(fontSize);
++      }
++    } catch {
++      /* Template versions without this field need no repair. */
++    }
++  };
++
++  repairTextField("Números de teléfonoTelephone numbers-0", 8);
++  repairTextField("32 Nombre y dirección de la empresa u organización", 8);
++  repairTextField("Texto27", 8);
++  repairTextField("Texto28", 8);
++
+   // ---- Page 1: 1..17 ----------------------------------------------------
+   setText(form, "1 ApellidosSumames", up(data.field1_surname));
+   setText(
