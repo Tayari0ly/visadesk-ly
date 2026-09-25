@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
     res.cookies.set(sessionCookie(session));
     return res;
   } catch (e: any) {
-    const safeMessage = e?.message === "PASSWORD_TOO_SHORT" ? "كلمة المرور لا تقل عن 10 أحرف" : "تعذر تسجيل الدخول";
-    return NextResponse.json({ success: false, error: safeMessage }, { status: 500 });
+    console.error("Login failure", e);
+    const safeMessage = e?.message === "PASSWORD_TOO_SHORT"
+      ? "كلمة المرور لا تقل عن 10 أحرف"
+      : "تعذر الاتصال بقاعدة البيانات. تحقق من DATABASE_URL وطبّق Migration ثم أعد النشر.";
+    return NextResponse.json({ success: false, error: safeMessage }, { status: 503 });
   }
 }

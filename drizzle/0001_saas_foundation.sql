@@ -22,6 +22,34 @@ CREATE TABLE IF NOT EXISTS licenses (
   updated_at timestamp NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  id serial PRIMARY KEY,
+  username text NOT NULL UNIQUE,
+  password_hash text NOT NULL,
+  full_name text NOT NULL DEFAULT '',
+  role text NOT NULL DEFAULT 'employee',
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS applications (
+  id serial PRIMARY KEY,
+  user_id integer REFERENCES users(id),
+  created_by_username text NOT NULL DEFAULT '',
+  title text NOT NULL DEFAULT 'طلب تأشيرة شنقن جديد',
+  applicant_name text NOT NULL DEFAULT '',
+  passport_number text NOT NULL DEFAULT '',
+  destination_country text NOT NULL DEFAULT 'France',
+  travel_date text NOT NULL DEFAULT '',
+  form_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  status text NOT NULL DEFAULT 'draft',
+  has_passport_scan boolean DEFAULT false,
+  passport_image_preview text,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
+);
+
 ALTER TABLE users ADD COLUMN IF NOT EXISTS branch_id integer REFERENCES branches(id);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now();
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS branch_id integer REFERENCES branches(id);

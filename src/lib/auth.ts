@@ -79,12 +79,18 @@ function normalizeRole(value: string): UserRole {
 }
 
 export async function ensureAdmin() {
-  const existing = await db.select({ id: users.id }).from(users).limit(1);
-  if (existing.length > 0) return;
   const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
   if (!bootstrapPassword) return;
+  const bootstrapUsername = (process.env.BOOTSTRAP_ADMIN_USERNAME || "admin").trim().slice(0, 120);
+  const existingAdmin = await db.select({ id: users.id }).from(users).where(eq(users.username, bootstrapUsername)).limit(1);
+  if (existingAdmin.length > 0) {
+    if (process.env.BOOTSTRAP_ADMIN_RESET === "true") {
+      await db.update(users).set({ passwordHash: hashPassword(bootstrapPassword), role: "super_admin", active: true, updatedAt: new Date() }).where(eq(users.id, existingAdmin[0].id));
+    }
+    return;
+  }
   await db.insert(users).values({
-    username: process.env.BOOTSTRAP_ADMIN_USERNAME || "admin",
+    username: bootstrapUsername,
     passwordHash: hashPassword(bootstrapPassword),
     fullName: "مدير النظام",
     role: "super_admin",
