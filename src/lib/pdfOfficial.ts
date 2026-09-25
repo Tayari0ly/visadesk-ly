@@ -93,6 +93,18 @@ export async function buildOfficialFormPdf(
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = doc.getForm();
 
+  // The BLS template contains the hotel-phone field twice as two overlapping
+  // widgets (one inherits a very large font). Keep one widget to avoid the
+  // same number being rendered twice at different sizes.
+  try {
+    const hotelPhone = form.getField("Números de teléfonoTelephone numbers-0");
+    while (hotelPhone.acroField.getWidgets().length > 1) {
+      hotelPhone.acroField.removeWidget(hotelPhone.acroField.getWidgets().length - 1);
+    }
+  } catch {
+    /* Template versions without the duplicate widget need no repair. */
+  }
+
   // ---- Page 1: 1..17 ----------------------------------------------------
   setText(form, "1 ApellidosSumames", up(data.field1_surname));
   setText(

@@ -1,6 +1,7 @@
 "use client";
 
 import { FolderOpen, LogOut, Users } from "lucide-react";
+import Image from "next/image";
 
 export type AppUser = {
   id: number;
@@ -34,7 +35,7 @@ export function Header({
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
-          <div aria-hidden="true" className="h-12 w-12 rounded-xl bg-[#1a4f8b] text-white flex items-center justify-center text-sm font-black tracking-tight">VD</div>
+          <Image src="/images/visadesk-ly-logo.svg" alt="VisaDesk LY" width={52} height={52} className="h-12 w-12 object-contain" priority />
           <div className="leading-none">
             <div className="text-[22px] font-bold tracking-tight text-[#1a4f8b]">VisaDesk</div>
             <div className="mt-0.5 flex items-baseline gap-2">

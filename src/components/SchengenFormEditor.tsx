@@ -224,7 +224,7 @@ export function SchengenFormEditor({
           }`}
         >
           <CreditCard className="w-4 h-4" />
-          <span>4. الفندق والمصاريف (29-31)</span>
+          <span>4. السكن والدعوة والمصاريف (31-33)</span>
         </button>
 
         <button
@@ -949,10 +949,10 @@ export function SchengenFormEditor({
           <div className="space-y-6">
             <div className="border-b border-slate-200 pb-3">
               <h3 className="text-base font-bold text-slate-800">
-                الحقول 29 إلى 31: بيانات السكن / الفندق وتغطية نفقات السفر
+                الحقول 31 إلى 33: بيانات السكن والدعوة وتغطية نفقات السفر
               </h3>
               <p className="text-xs text-slate-500">
-                حدد مقر الإقامة في بلد الشنقن وكيفية تمويل الرحلة (من طرفك أو بواسطة مستضيف/شركة).
+                أدخل بيانات السكن أو الشخص المستضيف، وبيانات الشركة أو الجهة التي أرسلت الدعوة في الخانة 32، ثم حدد كيفية تمويل الرحلة.
               </p>
             </div>
 
@@ -999,6 +999,28 @@ export function SchengenFormEditor({
                   placeholder="+33 1 40 58 20 00"
                   className="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              {/* Field 32: Inviting company / organisation */}
+              <div className="md:col-span-2 mt-2 rounded-xl border border-cyan-200 bg-cyan-50/50 p-4 space-y-3">
+                <div>
+                  <h4 className="text-sm font-bold text-[#1a4f8b]">32. بيانات الشركة أو الجهة الداعية / Inviting company or organisation</h4>
+                  <p className="text-[11px] text-slate-600 mt-1">هذه الخانات تُنقل إلى الخانة 32 في نموذج BLS الرسمي. اتركها فارغة إذا لم تكن هناك دعوة من شركة أو منظمة.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">اسم الشركة / المنظمة الداعية:</label>
+                    <input type="text" value={formData.field30_invitingCompany} onChange={(e) => updateField("field30_invitingCompany", e.target.value)} placeholder="اسم الشركة أو المنظمة" className="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">اسم الشخص المسؤول وعنوانه وبريده:</label>
+                    <textarea rows={3} value={formData.field30_companyContactPerson} onChange={(e) => updateField("field30_companyContactPerson", e.target.value)} placeholder="الاسم، العنوان، البريد الإلكتروني" className="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">هاتف الشركة وعنوانها:</label>
+                    <textarea rows={3} value={formData.field30_companyAddressAndPhone} onChange={(e) => updateField("field30_companyAddressAndPhone", e.target.value)} placeholder="العنوان ورقم الهاتف" className="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500" />
+                  </div>
+                </div>
               </div>
 
               {/* Field 31: Means of support */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import { apiFetch } from "@/lib/client";
 
 export type SessionUserLite = {
@@ -53,7 +54,7 @@ export function LoginForm({ onLoggedIn }: { onLoggedIn?: (user: SessionUserLite)
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4" dir="rtl">
       <form onSubmit={onSubmit} className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
-          <div aria-hidden="true" className="h-12 w-12 rounded-xl bg-[#1a4f8b] text-white flex items-center justify-center text-sm font-black tracking-tight">VD</div>
+          <Image src="/images/visadesk-ly-logo.svg" alt="VisaDesk LY" width={52} height={52} className="h-12 w-12 object-contain" priority />
           <div>
             <div className="text-xl font-bold text-[#1a4f8b]">VisaDesk LY</div>
             <div className="text-[11px] text-[#3db7d4] font-semibold">TRAVEL &amp; TOURISM SOLUTIONS</div>

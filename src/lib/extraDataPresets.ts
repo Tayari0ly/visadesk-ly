@@ -118,6 +118,56 @@ export const DESTINATION_PRESETS: Record<
         address: "Paseo del Prado 48, 28014 Madrid, Spain",
         phone: "+34 91 429 66 29",
       },
+      {
+        name: "Barceló Sants",
+        address: "Plaça dels Països Catalans 1-3, 08014 Barcelona, Spain",
+        phone: "+34 93 503 53 00",
+      },
+      {
+        name: "Hotel Madrid Chamartín Affiliated by Meliá",
+        address: "Agustín de Foxá s/n, 28036 Madrid, Spain",
+        phone: "+34 91 334 49 00",
+      },
+      {
+        name: "Hotel Ilunion Valencia",
+        address: "Carrer de Valle de Ayora 1, 46015 Valencia, Spain",
+        phone: "+34 96 399 56 00",
+      },
+      {
+        name: "Meliá Sevilla",
+        address: "Calle Doctor Pedro de Castro 1, 41004 Sevilla, Spain",
+        phone: "+34 954 42 15 11",
+      },
+      {
+        name: "NH Málaga",
+        address: "Calle San Jacinto 2, 29007 Málaga, Spain",
+        phone: "+34 952 07 13 23",
+      },
+      {
+        name: "AC Hotel Málaga Palacio",
+        address: "Calle Cortina del Muelle 1, 29015 Málaga, Spain",
+        phone: "+34 952 21 51 85",
+      },
+      {
+        name: "Hotel Granada Center",
+        address: "Avenida de Fuentenueva s/n, 18002 Granada, Spain",
+        phone: "+34 958 20 51 00",
+      },
+      {
+        name: "Hotel Palma Bellver",
+        address: "Paseo Marítimo 29-31, 07014 Palma, Spain",
+        phone: "+34 971 73 26 35",
+      },
+      {
+        name: "Eurostars Gran Hotel Santiago",
+        address: "Avenida Maestro Mateo 27, 15706 Santiago de Compostela, Spain",
+        phone: "+34 981 52 27 36",
+      },
+      {
+        name: "Hotel Zaragoza Royal",
+        address: "Calle del Arzobispo Domenech 4, 50006 Zaragoza, Spain",
+        phone: "+34 976 56 95 00",
+      },
     ],
   },
   NETHERLANDS: {

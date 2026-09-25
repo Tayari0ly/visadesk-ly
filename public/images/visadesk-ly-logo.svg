@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">VisaDesk LY</title>
+  <desc id="desc">VisaDesk LY travel and tourism solutions logo</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#123f75"/>
+      <stop offset="1" stop-color="#1a4f8b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3db7d4"/>
+      <stop offset="1" stop-color="#8ce4ee"/>
+    </linearGradient>
+  </defs>
+  <rect x="7" y="7" width="146" height="146" rx="34" fill="url(#bg)"/>
+  <path d="M80 25 126 42v34c0 30-19 50-46 61C53 126 34 106 34 76V42z" fill="none" stroke="#fff" stroke-width="6" opacity=".95"/>
+  <path d="M50 92h60M50 105h45" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
+  <path d="m51 67 26-9 31-13c4-2 8 3 4 6L88 72l-5 18c-1 4-7 4-8 0l-3-13-20-4c-4-1-5-5-1-6z" fill="url(#accent)"/>
+  <text x="80" y="132" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#fff" letter-spacing="1">VISA DESK</text>
+</svg>

@@ -27,8 +27,14 @@ interface ExtraDataQuickFillProps {
 
 export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillProps) {
   const [applied, setApplied] = useState(false);
+  const [hotelSearch, setHotelSearch] = useState("");
 
   const hotels = DESTINATION_PRESETS[formData.field24_memberStateOfMainDestination]?.hotels || [];
+  const filteredHotels = useMemo(() => {
+    const query = hotelSearch.trim().toLowerCase();
+    if (!query) return hotels;
+    return hotels.filter((hotel) => `${hotel.name} ${hotel.address} ${hotel.phone}`.toLowerCase().includes(query));
+  }, [hotelSearch, hotels]);
 
   const suggestedCity = useMemo(() => {
     return CITY_DEFAULTS[formData.field7_currentNationality] || CITY_DEFAULTS.Libya;
@@ -253,18 +259,27 @@ export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillPro
           <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-600" /> الفندق أو المستضيف (29)
           </h3>
+          <input
+            type="search"
+            dir="auto"
+            value={hotelSearch}
+            onChange={(e) => setHotelSearch(e.target.value)}
+            placeholder={`ابحث في ${hotels.length} فندقاً بالاسم أو المدينة...`}
+            className="w-full text-sm p-2.5 border border-emerald-200 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500"
+          />
           <select
             className="w-full text-sm p-2.5 border border-slate-300 rounded-lg bg-white"
             value={formData.field29_invitingPersonOrHotelName}
             onChange={(e) => applyHotel(e.target.value)}
           >
-            <option value="">اختر فندقاً جاهزاً أو اكتب يدوياً أدناه...</option>
-            {hotels.map((h) => (
+            <option value="">اختر فندقاً من نتائج البحث أو اكتب يدوياً أدناه...</option>
+            {filteredHotels.map((h) => (
               <option key={h.name} value={h.name}>
                 {h.name}
               </option>
             ))}
           </select>
+          <p className="text-[11px] text-slate-500">تظهر {filteredHotels.length} نتيجة. اختر الفندق ليتم ملء العنوان والهاتف تلقائياً، ثم راجع بيانات الحجز قبل التقديم.</p>
           <input
             className="w-full text-sm p-2.5 border border-slate-300 rounded-lg bg-white"
             placeholder="اسم الفندق أو الشخص المستضيف"
