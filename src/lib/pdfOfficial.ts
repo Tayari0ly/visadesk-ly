@@ -1,4 +1,4 @@
-import { PDFCheckBox, PDFDocument, PDFRadioGroup, PDFTextField, StandardFonts } from "pdf-lib";
+import { PDFCheckBox, PDFDocument, PDFPage, PDFRadioGroup, PDFRef, PDFTextField, StandardFonts } from "pdf-lib";
 import { SchengenFormData } from "@/types/schengen";
 
 const FORM_URL = "/forms/schengen_visa_application_form.pdf";
@@ -57,6 +57,46 @@ function setRadio(
   }
 }
 
+function removeAllWidgets(doc: PDFDocument, form: ReturnType<PDFDocument["getForm"]>, name: string) {
+  try {
+    const field = form.getField(name);
+    if (!(field instanceof PDFTextField)) return;
+    for (const widget of field.acroField.getWidgets()) {
+      for (const page of doc.getPages()) {
+        const annots = page.node.Annots();
+        if (!annots) continue;
+        for (let i = annots.size() - 1; i >= 0; i -= 1) {
+          const ref = annots.get(i) as PDFRef;
+          if (doc.context.lookup(ref) === widget.dict) page.node.removeAnnot(ref);
+        }
+      }
+    }
+    for (let i = field.acroField.getWidgets().length - 1; i >= 0; i -= 1) field.acroField.removeWidget(i);
+  } catch {
+    /* Ignore template field drift. */
+  }
+}
+
+function drawOneLine(page: PDFPage, value: string, x: number, y: number, max = 80) {
+  const text = String(value || "").trim().slice(0, max);
+  if (text) page.drawText(text, { x, y, size: 8 });
+}
+
+function drawLines(page: PDFPage, value: string, x: number, y: number, chars = 34, maxLines = 4) {
+  const words = String(value || "").trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && next.length > chars) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  if (line) lines.push(line);
+  lines.slice(0, maxLines).forEach((item, index) => page.drawText(item, { x, y: y - index * 11, size: 8 }));
+}
+
 async function drawFallbackSummary(doc: PDFDocument, data: SchengenFormData) {
   const page = doc.addPage([595.56, 842.04]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -93,17 +133,45 @@ export async function buildOfficialFormPdf(
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const form = doc.getForm();
 
-  // The BLS template contains the hotel-phone field twice as two overlapping
-  // widgets (one inherits a very large font). Keep one widget to avoid the
-  // same number being rendered twice at different sizes.
-  try {
-    const hotelPhone = form.getField("Números de teléfonoTelephone numbers-0");
-    while (hotelPhone.acroField.getWidgets().length > 1) {
-      hotelPhone.acroField.removeWidget(hotelPhone.acroField.getWidgets().length - 1);
+  // The BLS template has a few duplicated, slightly-offset widgets. If both
+  // are filled, text is printed twice; one of them also inherits an oversized
+  // font. Keep the first widget, preserve the printed form lines, and set an
+  // explicit readable size.
+  const repairTextField = (name: string, fontSize: number) => {
+    try {
+      const field = form.getField(name);
+      if (field instanceof PDFTextField) {
+        while (field.acroField.getWidgets().length > 1) {
+          const widgetIndex = field.acroField.getWidgets().length - 1;
+          const duplicateWidget = field.acroField.getWidgets()[widgetIndex];
+          // removeWidget updates the AcroForm tree, but some PDF viewers still
+          // render an orphaned page annotation unless it is removed from /Annots too.
+          for (const page of doc.getPages()) {
+            const annots = page.node.Annots();
+            if (!annots) continue;
+            for (let i = annots.size() - 1; i >= 0; i -= 1) {
+              const ref = annots.get(i) as PDFRef;
+              const dict = doc.context.lookup(ref);
+              if (dict === duplicateWidget.dict) page.node.removeAnnot(ref);
+            }
+          }
+          field.acroField.removeWidget(widgetIndex);
+        }
+        field.setFontSize(fontSize);
+      }
+    } catch {
+      /* Template versions without this field need no repair. */
     }
-  } catch {
-    /* Template versions without the duplicate widget need no repair. */
-  }
+  };
+
+  // These four fields are removed completely below and drawn once after the
+  // regular AcroForm fields are populated. The BLS file contains two page
+  // annotations for each of them, which is why font-size-only repair is not
+  // sufficient in some PDF viewers.
+  removeAllWidgets(doc, form, "Números de teléfonoTelephone numbers-0");
+  removeAllWidgets(doc, form, "32 Nombre y dirección de la empresa u organización");
+  removeAllWidgets(doc, form, "Texto27");
+  removeAllWidgets(doc, form, "Texto28");
 
   // ---- Page 1: 1..17 ----------------------------------------------------
   setText(form, "1 ApellidosSumames", up(data.field1_surname));
@@ -275,14 +343,13 @@ export async function buildOfficialFormPdf(
 
   // ---- Page 3 -----------------------------------------------------------
   setText(form, "Texto26", data.field29_hostAddressAndEmail);
-  setText(form, "Números de teléfonoTelephone numbers-0", data.field29_hostPhone);
-  setText(
-    form,
-    "32 Nombre y dirección de la empresa u organización",
-    data.field30_invitingCompany
-  ); // 32
-  setText(form, "Texto27", data.field30_companyContactPerson);
-  setText(form, "Texto28", data.field30_companyAddressAndPhone);
+  const page3 = doc.getPages()[2];
+  // Hotel phone: BLS places it in the right-hand box beside the hotel address.
+  drawLines(page3, data.field29_hostPhone, 301, 777, 34, 4);
+  // Invitation/company data: one controlled rendering per printed box.
+  drawOneLine(page3, data.field30_invitingCompany, 52, 697, 80);
+  drawLines(page3, data.field30_companyContactPerson, 52, 655, 34, 3);
+  drawLines(page3, data.field30_companyAddressAndPhone, 301, 664, 34, 4);
 
   // 33 — cost of travelling and living
   const cov = data.field31_coveredBy;
