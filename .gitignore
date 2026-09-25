@@ -1,0 +1,26 @@
+# dependencies and generated output
+node_modules/
+.next/
+out/
+.turbo/
+
+# local secrets and environment files
+.env
+.env.*
+!.env.example
+
+# local databases and logs
+*.db
+*.sqlite
+*.log
+npm-debug.log*
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# local deployment artifacts
+.vercel/
+coverage/
