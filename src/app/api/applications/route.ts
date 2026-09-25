@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       userId: me.id, branchId: me.branchId, createdBy: me.id, updatedBy: me.id, createdByUsername: me.username,
       title: String(body.title || `طلب ${applicantName || "جديد"}`).slice(0, 200), applicantName, passportNumber,
       destinationCountry: String(body.destinationCountry || "France").slice(0, 80), travelDate: String(body.travelDate || "").slice(0, 20),
+      hotelId: body.hotelId === null || body.hotelId === undefined || body.hotelId === "" ? null : Number(body.hotelId),
       formData: body.formData, hasPassportScan: Boolean(body.hasPassportScan), status: "saved",
     }).returning();
     await db.insert(auditLogs).values({ userId: me.id, branchId: me.branchId, action: "CREATE_FORM", entityType: "application", entityId: String(inserted[0].id), newValue: inserted[0].formData });

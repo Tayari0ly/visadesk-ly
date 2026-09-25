@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderOpen, LogOut, Users } from "lucide-react";
+import { Building2, FolderOpen, LogOut, Users } from "lucide-react";
 import Image from "next/image";
 
 export type AppUser = {
@@ -77,6 +77,7 @@ export function Header({
               الحسابات
             </button>
           )}
+          {user && <button onClick={() => { window.location.href = "/hotels"; }} className="px-3 py-1.5 rounded-md text-sm text-[#1a4f8b] hover:bg-slate-100 flex items-center gap-1.5"><Building2 className="w-4 h-4" /> الفنادق</button>}
           {(user?.role === "owner" || user?.role === "super_admin" || user?.role === "admin") && (
             <button onClick={() => { window.location.href = "/owner"; }} className="px-3 py-1.5 rounded-md text-sm text-[#1a4f8b] hover:bg-slate-100">
               لوحة المالك

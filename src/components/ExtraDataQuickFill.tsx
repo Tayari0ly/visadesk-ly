@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { SchengenFormData } from "@/types/schengen";
+import { apiFetch } from "@/lib/client";
 import {
   OCCUPATIONS,
   DESTINATION_PRESETS,
@@ -28,6 +29,8 @@ interface ExtraDataQuickFillProps {
 export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillProps) {
   const [applied, setApplied] = useState(false);
   const [hotelSearch, setHotelSearch] = useState("");
+  const [remoteHotels, setRemoteHotels] = useState<Array<{ id: number; hotelName: string; address: string; city: string; phone: string }>>([]);
+  const [hotelLoading, setHotelLoading] = useState(false);
 
   const hotels = DESTINATION_PRESETS[formData.field24_memberStateOfMainDestination]?.hotels || [];
   const filteredHotels = useMemo(() => {
@@ -35,6 +38,27 @@ export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillPro
     if (!query) return hotels;
     return hotels.filter((hotel) => `${hotel.name} ${hotel.address} ${hotel.phone}`.toLowerCase().includes(query));
   }, [hotelSearch, hotels]);
+
+  useEffect(() => {
+    const query = hotelSearch.trim();
+    if (query.length < 2) {
+      setRemoteHotels([]);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      setHotelLoading(true);
+      try {
+        const response = await apiFetch(`/api/hotels?q=${encodeURIComponent(query)}&limit=20`);
+        const json = await response.json();
+        if (json.success) setRemoteHotels(json.hotels || []);
+      } catch {
+        setRemoteHotels([]);
+      } finally {
+        setHotelLoading(false);
+      }
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [hotelSearch]);
 
   const suggestedCity = useMemo(() => {
     return CITY_DEFAULTS[formData.field7_currentNationality] || CITY_DEFAULTS.Libya;
@@ -105,12 +129,18 @@ export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillPro
 
   const applyHotel = (name: string) => {
     const dest = formData.field24_memberStateOfMainDestination;
+    const remote = remoteHotels.find((h) => h.hotelName === name);
+    if (remote) {
+      update({ hotelId: remote.id, field29_invitingPersonOrHotelName: remote.hotelName, field29_hostAddressAndEmail: [remote.address, remote.city].filter(Boolean).join(", "), field29_hostPhone: remote.phone });
+      return;
+    }
     const hotel = (DESTINATION_PRESETS[dest]?.hotels || []).find((h) => h.name === name);
     if (!hotel) {
-      update({ field29_invitingPersonOrHotelName: name });
+      update({ hotelId: null, field29_invitingPersonOrHotelName: name });
       return;
     }
     update({
+      hotelId: null,
       field29_invitingPersonOrHotelName: hotel.name,
       field29_hostAddressAndEmail: hotel.address,
       field29_hostPhone: hotel.phone,
@@ -264,7 +294,7 @@ export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillPro
             dir="auto"
             value={hotelSearch}
             onChange={(e) => setHotelSearch(e.target.value)}
-            placeholder={`ابحث في ${hotels.length} فندقاً بالاسم أو المدينة...`}
+            placeholder="ابحث في قاعدة الفنادق أو القائمة المحلية..."
             className="w-full text-sm p-2.5 border border-emerald-200 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500"
           />
           <select
@@ -273,18 +303,40 @@ export function ExtraDataQuickFill({ formData, onChange }: ExtraDataQuickFillPro
             onChange={(e) => applyHotel(e.target.value)}
           >
             <option value="">اختر فندقاً من نتائج البحث أو اكتب يدوياً أدناه...</option>
+            {remoteHotels.map((h) => (
+              <option key={`db-${h.id}`} value={h.hotelName}>
+                {h.hotelName}{h.city ? ` — ${h.city}` : ""}
+              </option>
+            ))}
             {filteredHotels.map((h) => (
               <option key={h.name} value={h.name}>
                 {h.name}
               </option>
             ))}
           </select>
-          <p className="text-[11px] text-slate-500">تظهر {filteredHotels.length} نتيجة. اختر الفندق ليتم ملء العنوان والهاتف تلقائياً، ثم راجع بيانات الحجز قبل التقديم.</p>
+          <p className="text-[11px] text-slate-500">{hotelLoading ? "جارٍ البحث في قاعدة الفنادق..." : `تظهر ${remoteHotels.length + filteredHotels.length} نتيجة. اختر الفندق ليتم ملء البيانات وحفظ hotel_id.`}</p>
+          <button
+            type="button"
+            className="text-xs font-bold text-emerald-700 underline"
+            onClick={async () => {
+              const name = window.prompt("اسم الفندق لإرساله للمراجعة:", hotelSearch || formData.field29_invitingPersonOrHotelName);
+              if (!name?.trim()) return;
+              const address = window.prompt("العنوان (اختياري):", formData.field29_hostAddressAndEmail || "") || "";
+              try {
+                const response = await apiFetch("/api/hotels", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hotelName: name, address, country: formData.field24_memberStateOfMainDestination === "SPAIN" ? "Spain" : formData.field24_memberStateOfMainDestination }) });
+                const json = await response.json();
+                if (json.success) update({ hotelId: json.hotel.id, field29_invitingPersonOrHotelName: json.hotel.hotelName, field29_hostAddressAndEmail: json.hotel.address });
+                else window.alert(json.error === "DUPLICATE" ? "هذا الفندق موجود مسبقاً أو قيد المراجعة." : json.error || "تعذر إرسال الفندق");
+              } catch { window.alert("تعذر الاتصال بقاعدة الفنادق"); }
+            }}
+          >
+            + إضافة فندق غير موجود للمراجعة
+          </button>
           <input
             className="w-full text-sm p-2.5 border border-slate-300 rounded-lg bg-white"
             placeholder="اسم الفندق أو الشخص المستضيف"
             value={formData.field29_invitingPersonOrHotelName}
-            onChange={(e) => update({ field29_invitingPersonOrHotelName: e.target.value })}
+            onChange={(e) => update({ hotelId: null, field29_invitingPersonOrHotelName: e.target.value })}
           />
           <input
             className="w-full text-sm p-2.5 border border-slate-300 rounded-lg bg-white"

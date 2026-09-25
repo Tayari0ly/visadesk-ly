@@ -44,6 +44,46 @@ export const licenses = pgTable(
   ],
 );
 
+export const hotels = pgTable(
+  "hotels",
+  {
+    id: serial("id").primaryKey(),
+    branchId: integer("branch_id").references(() => branches.id),
+    hotelName: text("hotel_name").notNull(),
+    address: text("address").notNull().default(""),
+    city: text("city").notNull().default(""),
+    province: text("province").notNull().default(""),
+    postalCode: text("postal_code").notNull().default(""),
+    phone: text("phone").notNull().default(""),
+    email: text("email").notNull().default(""),
+    website: text("website").notNull().default(""),
+    country: text("country").notNull().default("Spain"),
+    latitude: text("latitude"),
+    longitude: text("longitude"),
+    stars: integer("stars"),
+    source: text("source").notNull().default("manual"),
+    externalId: text("external_id"),
+    status: text("status").notNull().default("pending_review"),
+    normalizedName: text("normalized_name").notNull().default(""),
+    normalizedAddress: text("normalized_address").notNull().default(""),
+    normalizedCity: text("normalized_city").notNull().default(""),
+    normalizedPostalCode: text("normalized_postal_code").notNull().default(""),
+    createdBy: integer("created_by").references(() => users.id),
+    reviewedBy: integer("reviewed_by").references(() => users.id),
+    reviewedAt: timestamp("reviewed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("hotels_name_idx").on(table.normalizedName),
+    index("hotels_city_idx").on(table.normalizedCity),
+    index("hotels_province_idx").on(table.province),
+    index("hotels_postal_idx").on(table.normalizedPostalCode),
+    index("hotels_status_idx").on(table.status),
+    uniqueIndex("hotels_external_source_unique").on(table.source, table.externalId),
+  ],
+);
+
 export const users = pgTable(
   "users",
   {
@@ -87,6 +127,7 @@ export const applications = pgTable(
     id: serial("id").primaryKey(),
     userId: integer("user_id").references(() => users.id),
     branchId: integer("branch_id").references(() => branches.id),
+    hotelId: integer("hotel_id").references(() => hotels.id),
     createdBy: integer("created_by").references(() => users.id),
     updatedBy: integer("updated_by").references(() => users.id),
     createdByUsername: text("created_by_username").notNull().default(""),
@@ -109,6 +150,7 @@ export const applications = pgTable(
     index("applications_user_updated_idx").on(table.userId, table.updatedAt),
     index("applications_passport_idx").on(table.passportNumber),
     index("applications_status_idx").on(table.status),
+    index("applications_hotel_idx").on(table.hotelId),
   ],
 );
 
@@ -182,10 +224,10 @@ export type UserRole = "owner" | "super_admin" | "admin" | "company_admin" | "br
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   owner: ["*"],
   super_admin: ["*"],
-  admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
-  company_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
-  branch_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings"],
+  admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings", "manage_hotels", "review_hotels"],
+  company_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings", "manage_hotels", "review_hotels"],
+  branch_admin: ["view_forms", "create_form", "edit_form", "delete_form", "print_form", "view_reports", "view_employees", "create_employees", "edit_employees", "manage_employees", "view_performance", "manage_branch_settings", "manage_hotels", "review_hotels"],
   supervisor: ["view_forms", "create_form", "edit_form", "print_form", "view_reports", "view_employees", "view_performance"],
-  employee: ["view_forms", "create_form", "edit_form", "print_form"],
-  viewer: ["view_forms"],
+  employee: ["view_forms", "create_form", "edit_form", "print_form", "view_hotels", "create_hotel_review"],
+  viewer: ["view_forms", "view_hotels"],
 };

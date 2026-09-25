@@ -66,6 +66,7 @@ export interface SchengenFormData {
   field28_entryPermitValidUntil: string;
 
   // Field 29-30: Host / Accommodation
+  hotelId: number | null;
   field29_invitingPersonOrHotelName: string;
   field29_hostAddressAndEmail: string;
   field29_hostPhone: string;
@@ -151,6 +152,7 @@ export const defaultSchengenFormData: SchengenFormData = {
   field28_entryPermitValidFrom: "",
   field28_entryPermitValidUntil: "",
 
+  hotelId: null,
   field29_invitingPersonOrHotelName: "",
   field29_hostAddressAndEmail: "",
   field29_hostPhone: "",

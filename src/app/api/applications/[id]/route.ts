@@ -49,6 +49,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         passportNumber: body.passportNumber === undefined ? existing.passportNumber : String(body.passportNumber).trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20),
         destinationCountry: body.destinationCountry === undefined ? existing.destinationCountry : String(body.destinationCountry).slice(0, 80),
         travelDate: body.travelDate === undefined ? existing.travelDate : String(body.travelDate).slice(0, 20),
+        hotelId: body.hotelId === undefined ? existing.hotelId : body.hotelId === null || body.hotelId === "" ? null : Number(body.hotelId),
         formData: nextFormData,
         hasPassportScan: body.hasPassportScan === undefined ? existing.hasPassportScan : Boolean(body.hasPassportScan),
         status: body.status === undefined ? existing.status : String(body.status).slice(0, 40),

@@ -6,7 +6,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "import:madrid-hotels": "npx tsx scripts/import-madrid-hotels.ts",
+    "download:regional-hotels": "bash scripts/download-regional-hotel-sources.sh",
+    "import:castilla-y-leon-hotels": "npx tsx scripts/import-regional-hotels.ts --region castilla-y-leon --file data/sources/castilla-y-leon-alojamientos_hoteleros.csv",
+    "import:valencia-hotels": "npx tsx scripts/import-regional-hotels.ts --region valencia --file data/sources/valencia-hoteles.csv",
+    "import:catalonia-hotels": "npx tsx scripts/import-regional-hotels.ts --region catalonia --file data/sources/catalonia-accommodation.csv"
   },
   "dependencies": {
     "dotenv": "17.3.1",
@@ -29,8 +34,9 @@
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
-    "postcss": "8.5.8",
+    "eslint-config-next": "16.2.6",
     "tailwindcss": "4.1.17",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tsx": "^4.21.0"
   }
 }

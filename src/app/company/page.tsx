@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, FileText, Users } from "lucide-react";
+import { Building2, Database, FileText, Users } from "lucide-react";
 import { apiFetch } from "@/lib/client";
 
 export default function CompanyPortalPage() {
@@ -12,6 +12,6 @@ export default function CompanyPortalPage() {
     <div className="flex items-center justify-between"><div><p className="text-sm text-slate-500">VisaDesk LY</p><h1 className="text-2xl font-bold text-slate-900">بوابة الشركة</h1></div><a href="/" className="text-sm text-blue-700">العودة إلى النماذج</a></div>
     {error && <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4">{error}</div>}
     {!data && !error && <div className="bg-white rounded-xl p-8 text-center text-slate-500">جارٍ تحميل بوابة الشركة...</div>}
-    {data && <><div className="bg-white rounded-xl border border-slate-200 p-6"><div className="flex items-center gap-3"><Building2 className="text-blue-700"/><div><h2 className="font-bold">{data.branch?.branch?.name}</h2><p className="text-xs text-slate-500">رمز الشركة: {data.branch?.branch?.code}</p></div></div></div><div className="grid grid-cols-2 gap-4"><div className="bg-white rounded-xl border p-5"><Users className="w-5 h-5 text-blue-700 mb-3"/><p className="text-xs text-slate-500">مستخدمو الشركة</p><p className="text-2xl font-bold">{data.summary.users}</p></div><div className="bg-white rounded-xl border p-5"><FileText className="w-5 h-5 text-blue-700 mb-3"/><p className="text-xs text-slate-500">النماذج المحفوظة</p><p className="text-2xl font-bold">{data.summary.applications}</p></div></div></>}
+    {data && <><div className="bg-white rounded-xl border border-slate-200 p-6"><div className="flex items-center gap-3"><Building2 className="text-blue-700"/><div><h2 className="font-bold">{data.branch?.branch?.name}</h2><p className="text-xs text-slate-500">رمز الشركة: {data.branch?.branch?.code}</p></div></div></div><div className="grid grid-cols-2 md:grid-cols-4 gap-4"><div className="bg-white rounded-xl border p-5"><Users className="w-5 h-5 text-blue-700 mb-3"/><p className="text-xs text-slate-500">مستخدمو الشركة</p><p className="text-2xl font-bold">{data.summary.users}</p></div><div className="bg-white rounded-xl border p-5"><FileText className="w-5 h-5 text-blue-700 mb-3"/><p className="text-xs text-slate-500">النماذج المحفوظة</p><p className="text-2xl font-bold">{data.summary.applications}</p></div><div className="bg-white rounded-xl border p-5"><Database className="w-5 h-5 text-emerald-700 mb-3"/><p className="text-xs text-slate-500">فنادق الفرع</p><p className="text-2xl font-bold">{data.summary.hotels}</p></div><div className="bg-white rounded-xl border p-5"><Database className="w-5 h-5 text-amber-700 mb-3"/><p className="text-xs text-slate-500">قيد المراجعة</p><p className="text-2xl font-bold">{data.summary.pendingHotels}</p></div></div></>}
   </div></main>;
 }

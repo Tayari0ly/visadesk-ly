@@ -138,6 +138,7 @@ export default function SchengenAiPage() {
         passportNumber: formData.field13_travelDocNumber,
         destinationCountry: formData.field24_memberStateOfMainDestination,
         travelDate: formData.field26_intendedArrivalDate,
+        hotelId: formData.hotelId || null,
         formData,
         hasPassportScan: Boolean(passportPreviewImg),
       };

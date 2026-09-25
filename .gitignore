@@ -24,3 +24,9 @@ Thumbs.db
 # local deployment artifacts
 .vercel/
 coverage/
+
+# downloaded source snapshots; retrieve with npm run download:regional-hotels
+data/sources/castilla-y-leon-alojamientos_hoteleros.csv
+data/sources/valencia-hoteles.csv
+data/sources/catalonia-accommodation.csv
+*.tsbuildinfo

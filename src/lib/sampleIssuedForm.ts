@@ -53,6 +53,7 @@ export const SAMPLE_ISSUED_FORM: SchengenFormData = {
   field28_entryPermitIssuedBy: "",
   field28_entryPermitValidFrom: "",
   field28_entryPermitValidUntil: "",
+  hotelId: null,
   field29_invitingPersonOrHotelName: "Novotel Paris Centre Tour Eiffel",
   field29_hostAddressAndEmail: "61 Quai de Grenelle, 75015 Paris, France",
   field29_hostPhone: "+33 1 40 58 20 00",
