@@ -341,10 +341,16 @@ index 51566b6..f11c8a6 100644
    },
    NETHERLANDS: {
 diff --git a/src/lib/pdfOfficial.ts b/src/lib/pdfOfficial.ts
-index 6460ad5..59328a1 100644
+index 6460ad5..d7ee4ae 100644
 --- a/src/lib/pdfOfficial.ts
 +++ b/src/lib/pdfOfficial.ts
-@@ -93,6 +93,29 @@ export async function buildOfficialFormPdf(
+@@ -1,4 +1,4 @@
+-import { PDFCheckBox, PDFDocument, PDFRadioGroup, PDFTextField, StandardFonts } from "pdf-lib";
++import { PDFCheckBox, PDFDocument, PDFRadioGroup, PDFRef, PDFTextField, StandardFonts } from "pdf-lib";
+ import { SchengenFormData } from "@/types/schengen";
+ 
+ const FORM_URL = "/forms/schengen_visa_application_form.pdf";
+@@ -93,6 +93,42 @@ export async function buildOfficialFormPdf(
    const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
    const form = doc.getForm();
  
@@ -357,7 +363,20 @@ index 6460ad5..59328a1 100644
 +      const field = form.getField(name);
 +      if (field instanceof PDFTextField) {
 +        while (field.acroField.getWidgets().length > 1) {
-+          field.acroField.removeWidget(field.acroField.getWidgets().length - 1);
++          const widgetIndex = field.acroField.getWidgets().length - 1;
++          const duplicateWidget = field.acroField.getWidgets()[widgetIndex];
++          // removeWidget updates the AcroForm tree, but some PDF viewers still
++          // render an orphaned page annotation unless it is removed from /Annots too.
++          for (const page of doc.getPages()) {
++            const annots = page.node.Annots();
++            if (!annots) continue;
++            for (let i = annots.size() - 1; i >= 0; i -= 1) {
++              const ref = annots.get(i) as PDFRef;
++              const dict = doc.context.lookup(ref);
++              if (dict === duplicateWidget.dict) page.node.removeAnnot(ref);
++            }
++          }
++          field.acroField.removeWidget(widgetIndex);
 +        }
 +        field.setFontSize(fontSize);
 +      }
