@@ -35,22 +35,30 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const create = async () => {
     setError("");
-    const res = await apiFetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, fullName, role, branchId: branchId ? Number(branchId) : undefined }),
-    });
-    const json = await res.json();
-    if (!json.success) {
-      setError(json.error || "تعذر الإنشاء");
+    if (!username.trim() || password.length < 10) {
+      setError("اسم المستخدم مطلوب وكلمة المرور يجب أن تكون 10 أحرف على الأقل.");
       return;
     }
-    setUsername("");
-    setPassword("");
-    setFullName("");
-    setRole("employee");
-    setBranchId("");
-    await load();
+    try {
+      const res = await apiFetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, fullName, role, branchId: branchId ? Number(branchId) : undefined }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setError(json.error || `تعذر إنشاء الحساب (${res.status})`);
+        return;
+      }
+      setUsername("");
+      setPassword("");
+      setFullName("");
+      setRole("employee");
+      setBranchId("");
+      await load();
+    } catch {
+      setError("تعذر الاتصال بالخادم. تحقق من نشر Vercel وDATABASE_URL ثم أعد المحاولة.");
+    }
   };
 
   const toggle = async (u: UserRow) => {
@@ -80,7 +88,7 @@ export function UsersModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         <div className="p-5 overflow-y-auto space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input className="border rounded-md p-2 text-sm" placeholder="اسم المستخدم" value={username} onChange={(e) => setUsername(e.target.value)} />
-            <input className="border rounded-md p-2 text-sm" placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input className="border rounded-md p-2 text-sm" placeholder="كلمة المرور (10 أحرف على الأقل)" minLength={10} type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
             <input className="border rounded-md p-2 text-sm" placeholder="الاسم" value={fullName} onChange={(e) => setFullName(e.target.value)} />
             <input className="border rounded-md p-2 text-sm" placeholder="رقم الشركة/الفرع (للحسابات المشتركة)" value={branchId} onChange={(e) => setBranchId(e.target.value.replace(/\D/g, ""))} />
             <select className="border rounded-md p-2 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>

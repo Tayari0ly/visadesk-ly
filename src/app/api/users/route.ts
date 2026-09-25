@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { branches, users } from "@/db/schema";
 import { hashPassword, hasPermission, requireUser } from "@/lib/auth";
 
 const allowedRoles = ["owner", "super_admin", "admin", "company_admin", "branch_admin", "supervisor", "employee", "viewer"] as const;
 function safeError(error: unknown) {
   console.error("Users API error", error);
+  const code = typeof error === "object" && error !== null && "code" in error ? String((error as { code?: unknown }).code) : "";
+  if (code === "23505") return "اسم المستخدم موجود مسبقاً، اختر اسماً آخر.";
+  if (code === "23503") return "رقم الشركة أو الفرع غير موجود. اختر فرعاً صحيحاً أو اترك الحقل فارغاً.";
+  if (code === "42P01") return "جدول الحسابات غير موجود في Neon. طبّق Migration ثم أعد النشر.";
+  if (code === "42703") return "بنية جدول الحسابات قديمة. طبّق آخر Migration ثم أعد النشر.";
   return "تعذر تنفيذ العملية.";
 }
 
@@ -34,7 +39,20 @@ export async function POST(req: NextRequest) {
     const requestedRole = String(body.role || "employee");
     const role = allowedRoles.includes(requestedRole as (typeof allowedRoles)[number]) ? requestedRole : "employee";
     if ((role === "owner" || role === "super_admin") && me.role !== "owner" && me.role !== "super_admin") return NextResponse.json({ success: false, error: "FORBIDDEN" }, { status: 403 });
-    const inserted = await db.insert(users).values({ username, passwordHash: hashPassword(password), fullName: String(body.fullName || "").trim().slice(0, 200), role, branchId: me.role === "owner" || me.role === "super_admin" ? (body.branchId || null) : me.branchId, active: true }).returning({ id: users.id, username: users.username, fullName: users.fullName, role: users.role, branchId: users.branchId, active: users.active });
+    const existing = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (existing.length) return NextResponse.json({ success: false, error: "اسم المستخدم موجود مسبقاً، اختر اسماً آخر." }, { status: 409 });
+
+    const requestedBranchId = me.role === "owner" || me.role === "super_admin" ? body.branchId : me.branchId;
+    const branchId = requestedBranchId === undefined || requestedBranchId === null || requestedBranchId === "" ? null : Number(requestedBranchId);
+    if (branchId !== null && (!Number.isInteger(branchId) || branchId <= 0)) {
+      return NextResponse.json({ success: false, error: "رقم الشركة أو الفرع غير صحيح." }, { status: 400 });
+    }
+    if (branchId !== null) {
+      const branch = await db.select({ id: branches.id }).from(branches).where(eq(branches.id, branchId)).limit(1);
+      if (!branch.length) return NextResponse.json({ success: false, error: "رقم الشركة أو الفرع غير موجود." }, { status: 400 });
+    }
+
+    const inserted = await db.insert(users).values({ username, passwordHash: hashPassword(password), fullName: String(body.fullName || "").trim().slice(0, 200), role, branchId, active: true }).returning({ id: users.id, username: users.username, fullName: users.fullName, role: users.role, branchId: users.branchId, active: users.active });
     return NextResponse.json({ success: true, user: inserted[0] }, { status: 201 });
   } catch (error) {
     const status = (error as Error)?.message === "UNAUTHORIZED" ? 401 : 500;
